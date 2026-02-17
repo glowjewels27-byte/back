@@ -17,11 +17,28 @@ app.use(helmet());
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-const allowedOrigins = [process.env.CLIENT_URL, process.env.ADMIN_URL].filter(Boolean);
+const explicitOrigins = [
+  process.env.CLIENT_URL,
+  process.env.ADMIN_URL,
+  ...(process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+];
+const allowVercelPreviews = String(process.env.ALLOW_VERCEL_PREVIEWS || "").toLowerCase() === "true";
+
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      if (!origin) return cb(null, true);
+      if (explicitOrigins.includes(origin)) return cb(null, true);
+      if (allowVercelPreviews) {
+        try {
+          if (/\.vercel\.app$/.test(new URL(origin).hostname)) return cb(null, true);
+        } catch (err) {
+          return cb(new Error("Invalid origin"));
+        }
+      }
       return cb(new Error("Not allowed by CORS"));
     },
     credentials: true
