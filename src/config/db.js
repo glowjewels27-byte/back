@@ -1,8 +1,21 @@
 import mongoose from "mongoose";
 
+let cached = global.mongoose;
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
 export const connectDB = async () => {
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error("MONGODB_URI not set");
-  mongoose.set("strictQuery", true);
-  await mongoose.connect(uri);
+
+  if (cached.conn) return cached.conn;
+
+  if (!cached.promise) {
+    mongoose.set("strictQuery", true);
+    cached.promise = mongoose.connect(uri).then((mongooseInstance) => mongooseInstance);
+  }
+
+  cached.conn = await cached.promise;
+  return cached.conn;
 };
