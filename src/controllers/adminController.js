@@ -25,3 +25,8 @@ export const toggleBlockUser = async (req, res) => {
   await user.save();
   res.json({ message: user.isBlocked ? "User blocked" : "User unblocked" });
 };
+
+export const listAllProductsForAdmin = async (req, res) => {
+  const products = await Product.find().sort({ createdAt: -1 });
+  res.json(products);
+};
