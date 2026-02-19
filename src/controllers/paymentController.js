@@ -14,11 +14,12 @@ export const createPayment = async (req, res) => {
   const { products, shippingAddress } = req.body;
 
   try {
-    const { items, totalAmount } = await buildOrderItemsAndTotal(products);
+    const { items, shippingAmount, totalAmount } = await buildOrderItemsAndTotal(products);
 
     const orderDoc = await Order.create({
       user: req.user._id,
       products: items,
+      shippingAmount,
       totalAmount,
       paymentMethod: "razorpay",
       paymentStatus: "pending",
@@ -32,6 +33,7 @@ export const createPayment = async (req, res) => {
         provider: "mock",
         localOrderId: orderDoc._id,
         amount: totalAmount,
+        shippingAmount,
         currency: "INR"
       });
     }
@@ -51,10 +53,14 @@ export const createPayment = async (req, res) => {
       localOrderId: orderDoc._id,
       orderId: gatewayOrder.id,
       amount: gatewayOrder.amount,
+      shippingAmount,
       currency: gatewayOrder.currency
     });
   } catch (err) {
-    const status = err.message.includes("Invalid") || err.message.includes("No items") ? 400 : 404;
+    const status =
+      err.message.includes("Invalid") || err.message.includes("No items") || err.message.includes("Minimum order")
+        ? 400
+        : 404;
     return res.status(status).json({ message: err.message });
   }
 };

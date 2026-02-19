@@ -1,11 +1,15 @@
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 
+const SHIPPING_CHARGE = 50;
+const FREE_SHIPPING_THRESHOLD = 1500;
+const MIN_ORDER_AMOUNT = 500;
+
 export const buildOrderItemsAndTotal = async (products) => {
   if (!products?.length) throw new Error("No items");
 
   const items = [];
-  let totalAmount = 0;
+  let itemTotal = 0;
 
   for (const item of products) {
     const product = await Product.findById(item.product);
@@ -25,10 +29,17 @@ export const buildOrderItemsAndTotal = async (products) => {
       image: product.images?.[0]
     });
 
-    totalAmount += finalPrice * qty;
+    itemTotal += finalPrice * qty;
   }
 
-  return { items, totalAmount };
+  if (itemTotal < MIN_ORDER_AMOUNT) {
+    throw new Error(`Minimum order amount is ₹${MIN_ORDER_AMOUNT}`);
+  }
+
+  const shippingAmount = itemTotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_CHARGE;
+  const totalAmount = itemTotal + shippingAmount;
+
+  return { items, itemTotal, shippingAmount, totalAmount };
 };
 
 export const reserveStock = async (products) => {
@@ -48,12 +59,13 @@ export const createOrder = async (req, res) => {
   }
 
   try {
-    const { items, totalAmount } = await buildOrderItemsAndTotal(products);
+    const { items, shippingAmount, totalAmount } = await buildOrderItemsAndTotal(products);
     await reserveStock(products);
 
     const order = await Order.create({
       user: req.user._id,
       products: items,
+      shippingAmount,
       totalAmount,
       paymentMethod: "cod",
       paymentStatus: "pending",
@@ -64,7 +76,12 @@ export const createOrder = async (req, res) => {
     return res.status(201).json(order);
   } catch (err) {
     const status =
-      err.message.includes("stock") || err.message.includes("Invalid") || err.message.includes("No items") ? 400 : 404;
+      err.message.includes("stock") ||
+      err.message.includes("Invalid") ||
+      err.message.includes("No items") ||
+      err.message.includes("Minimum order")
+        ? 400
+        : 404;
     return res.status(status).json({ message: err.message });
   }
 };
