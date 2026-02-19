@@ -3,7 +3,7 @@ import Product from "../models/Product.js";
 
 const SHIPPING_CHARGE = 50;
 const FREE_SHIPPING_THRESHOLD = 1500;
-const MIN_ORDER_AMOUNT = 500;
+const MIN_ORDER_AMOUNT = 400;
 
 export const buildOrderItemsAndTotal = async (products) => {
   if (!products?.length) throw new Error("No items");
