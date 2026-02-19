@@ -2,7 +2,7 @@ import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 
 const SHIPPING_CHARGE = 50;
-const FREE_SHIPPING_THRESHOLD = 1500;
+const FREE_SHIPPING_THRESHOLD = 1000;
 const MIN_ORDER_AMOUNT = 400;
 
 export const buildOrderItemsAndTotal = async (products) => {
