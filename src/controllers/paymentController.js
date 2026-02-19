@@ -81,8 +81,7 @@ export const verifyPayment = async (req, res) => {
       await order.save();
       return res.json({ success: true, order });
     } catch (err) {
-      order.paymentStatus = "failed";
-      await order.save();
+      await order.deleteOne();
       return res.status(400).json({ message: err.message });
     }
   }
@@ -99,8 +98,7 @@ export const verifyPayment = async (req, res) => {
     .digest("hex");
 
   if (expected !== razorpay_signature) {
-    order.paymentStatus = "failed";
-    await order.save();
+    await order.deleteOne();
     return res.status(400).json({ message: "Invalid payment signature" });
   }
 
@@ -117,8 +115,19 @@ export const verifyPayment = async (req, res) => {
     await order.save();
     return res.json({ success: true, order });
   } catch (err) {
-    order.paymentStatus = "failed";
-    await order.save();
+    await order.deleteOne();
     return res.status(400).json({ message: err.message });
   }
+};
+
+export const cancelPayment = async (req, res) => {
+  const { localOrderId } = req.params;
+  const order = await Order.findById(localOrderId);
+  if (!order) return res.json({ success: true });
+  if (order.user.toString() !== req.user._id.toString()) return res.status(403).json({ message: "Not allowed" });
+
+  if (order.paymentMethod === "razorpay" && order.paymentStatus === "pending" && !order.paymentDetails?.gatewayPaymentId) {
+    await order.deleteOne();
+  }
+  return res.json({ success: true });
 };
