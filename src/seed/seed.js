@@ -14,7 +14,8 @@ const categories = [
   { name: "Rings", enabled: true },
   { name: "Bracelets", enabled: true },
   { name: "Anklets", enabled: true },
-  { name: "Combos", enabled: true }
+  { name: "Combos", enabled: true },
+  { name: "Purse", enabled: true }
 ];
 
 const products = [
